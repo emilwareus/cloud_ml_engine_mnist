@@ -3,7 +3,6 @@ import numpy as np
 
 INPUT_FEATURE="img"
 
-
 def cnn_model_fn(features=None, labels=None, mode=None, params=None):
     """ Three convolutional layer followed by max pooling
         In the finaly layer the output is flattened and put in to a 
@@ -51,66 +50,3 @@ def cnn_model_fn(features=None, labels=None, mode=None, params=None):
         labels=labels,
         optimizer=tf.train.AdamOptimizer(),
         logits=logits)
-
-def main():
-    mnist = tf.contrib.learn.datasets.load_dataset("mnist") #Loads the data set
-    train_data = mnist.train.images  # Returns np.array
-    train_labels = np.asarray(mnist.train.labels, dtype=np.int32)
-    eval_data = mnist.test.images  # Returns np.array
-    eval_labels = np.asarray(mnist.test.labels, dtype=np.int32)
-
-    run_config = tf.estimator.RunConfig(save_checkpoints_secs = 120, 
-	                                    keep_checkpoint_max = 3)
-
-    mnist_classifier = tf.estimator.Estimator(
-        model_fn=cnn_model_fn, 
-        model_dir="model_dir",
-        config=run_config
-        )
-
-    train_input_fn = tf.estimator.inputs.numpy_input_fn(
-        x={"img": train_data},
-        y=train_labels,
-        batch_size=100,
-        num_epochs=None,
-        shuffle=True
-        )
-
-    eval_input_fn = tf.estimator.inputs.numpy_input_fn(
-        x={"img": eval_data},
-        y=eval_labels,
-        num_epochs=1,
-        shuffle=False
-        )
-
-    tf.logging.set_verbosity(tf.logging.INFO)
-    train_spec = tf.estimator.TrainSpec(input_fn=train_input_fn, max_steps=300)
-    eval_spec = tf.estimator.EvalSpec(input_fn=eval_input_fn,start_delay_secs=30, throttle_secs=40)
-    tf.estimator.train_and_evaluate(mnist_classifier, train_spec, eval_spec)
-
-
-
-    def serving_input_fn():
-        """Defines the features to be passed to the model during inference.
-        Expects numpy array :)
-        Returns:
-            A tf.estimator.export.ServingInputReceiver
-        """
-        # Input to the serving function
-        reciever_tensors = {INPUT_FEATURE: tf.placeholder(tf.float32, [None, 784])}
-        # Convert give inputs to adjust to the model.
-        features = {
-        # Resize given images.
-            INPUT_FEATURE: reciever_tensors[INPUT_FEATURE],
-            }
-        return tf.estimator.export.ServingInputReceiver(receiver_tensors=reciever_tensors,
-                                                    features=features)
-
-
-
-    mnist_classifier.export_savedmodel("export_dir", serving_input_fn)
-
-
-
-if __name__=="__main__":
-    main()
